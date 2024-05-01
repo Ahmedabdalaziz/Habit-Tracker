@@ -48,15 +48,17 @@ class HabitDatabase extends ChangeNotifier {
   Future<void> updateHabitComplete(int id, bool isComplete) async {
     final habit = await isar.habits.get(id);
     if (habit != null) {
+      final now = DateTime.now();
       await isar.writeTxn(() async {
-        if (isComplete && habit.completedDay.contains(DateTime.now())) {
-          final today = DateTime.now();
-          habit.completedDay.add(DateTime(today.year, today.month, today.day));
-        } else {
+        if (isComplete &&
+            !habit.completedDay
+                .contains(DateTime(now.year, now.month, now.day))) {
+          habit.completedDay.add(DateTime(now.year, now.month, now.day));
+        } else if (!isComplete) {
           habit.completedDay.removeWhere((day) =>
-              day.year == DateTime.now().year &&
-              day.month == DateTime.now().month &&
-              day.day == DateTime.now().day);
+              day.year == now.year &&
+              day.month == now.month &&
+              day.day == now.day);
         }
         await isar.habits.put(habit);
       });
@@ -67,15 +69,14 @@ class HabitDatabase extends ChangeNotifier {
   Future<void> updateHabitName(int id, String newName) async {
     final habit = await isar.habits.get(id);
     if (habit != null) {
-      isar.writeTxn(() async {
+      await isar.writeTxn(() async {
         habit.name = newName;
+        return null;
       });
-
-      await isar.habits.put(habit);
     }
 
-    readHabit();
   }
+
 
   Future<void> deleteHabit(int id) async {
     await isar.writeTxn(() async {
